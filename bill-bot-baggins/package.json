@@ -24,6 +24,7 @@
     "@tanstack/react-table": "^8.10.7",
     "autoprefixer": "10.4.15",
     "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "eslint": "8.47.0",
     "eslint-config-next": "13.4.19",
@@ -31,6 +32,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.287.0",
     "next": "^14.0.0",
+    "next-auth": "^4.24.7",
     "postcss": "8.4.28",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -47,6 +49,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.3",
     "@types/node": "^20.5.8",
     "@types/react": "^18.2.21",
