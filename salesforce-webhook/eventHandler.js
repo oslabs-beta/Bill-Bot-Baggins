@@ -32,30 +32,32 @@ const eventHandler = async (event) => {
     event.payload.ChangeEventHeader;
   const { For_Chart__c, npe01__Payment_Amount__c, Name } = event.payload;
   const recordId = recordIds[0];
-  
+
   if (changedFields.length === 1) return;
 
   switch (changeType) {
-
     case "CREATE": {
       console.log("CREATE case changeType: ", changeType);
       // initialize variable to payment record ID
       paymentType = For_Chart__c;
       // assign opp variable to the evaluated result of retrieveOppType function passing in recordId
-      if (paymentType.string == "Cost to Client")
+      if (paymentType == "Cost to Client")
         opportunity = await retreiveOppType(recordId);
-      else
+      else {
         console.log(
-          "This event does not meet the requirements for creatings a stripe invoice"
+          "This event does not meet the requirements for creating a stripe invoice",
         );
+        break;
+      }
+
       if (recordTypes.includes(opportunity.type)) {
         const paymentAmount = npe01__Payment_Amount__c;
         const invoice_number = Name;
-        console.log("payment amount: ", paymentAmount.double);
+        console.log("payment amount: ", paymentAmount);
 
         const paymentDetails = {
           account_name: opportunity.account_name,
-          amount: paymentAmount.double,
+          amount: paymentAmount,
           project_type: opportunity.project_type,
           invoice_number: invoice_number.string,
           recordId: recordId,
@@ -70,7 +72,6 @@ const eventHandler = async (event) => {
     }
 
     case "UPDATE": {
-
       console.log("UPDATE case changeType: ", changeType);
 
       if (!For_Chart__c) {
