@@ -59,9 +59,11 @@ const eventHandler = async (event) => {
           account_name: opportunity.account_name,
           amount: paymentAmount,
           project_type: opportunity.project_type,
-          invoice_number: invoice_number.string,
+          invoice_number: invoice_number,
           recordId: recordId,
         };
+
+        console.log("these are the payment details", paymentDetails);
         //create invoice in stripe
         const stripeInvoice = await createStripeInvoice(paymentDetails);
 
@@ -73,20 +75,23 @@ const eventHandler = async (event) => {
 
     case "UPDATE": {
       console.log("UPDATE case changeType: ", changeType);
+      console.log(event);
 
       if (!For_Chart__c) {
         const clientPayment = getPaymentType(recordId);
         if (clientPayment) paymentType = "Cost to Client";
       }
-      // console.log("UPDATE payment type: ", paymentType);
+      // map changed fields from salesforce payload to updates object
       const updates = {};
+      console.log("UPDATE change fields: ", changedFields);
       changedFields.forEach((field) => {
-        console.log("UPDATE change fields: ", changedFields);
         updates[field] = event.payload[field];
       });
       console.log("UPDATE updates object: ", updates);
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
+
+      //iterate through and update stripe invoice accordingly
 
       if (OutsideFundingSource__c) {
         console.log("OUTSIDE FUNDING SOURCE");
@@ -104,11 +109,21 @@ const eventHandler = async (event) => {
           ? payStripeInvoice(recordId)
           : console.log("invoice not marked paid");
       }
+
+      // if payment amount has changed in salesforce, finalized stripe invoices cannot be edited, but only created and deleted.
+      if (npe01__Payment_Amount__c) {
+        console.log("UPDATE STRIPE INVOICE AMOUNT");
+        stripeRouter.updatePaymentAmount(
+          recordId,
+          npe01__Payment_Amount__c,
+          Name,
+        );
+      }
       break;
     }
     case "DELETE": {
-      //need to store salesforce and stripe ids so that when /if a payment is deleted, it can get voided/deleted in stripe
-      console.log("DELETE case");
+      //need to store salesforce and stripe ids so that when a payment is deleted, it can get voided/deleted in stripe
+      voidStripeInvoice(recordId);
       break;
     }
     default: {
