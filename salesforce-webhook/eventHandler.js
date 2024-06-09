@@ -4,8 +4,12 @@ const { stripeRouter } = require("./routers/stripeRouter.js");
 const { retreiveOppType, updateSalesforceStripeId, getPaymentType } =
   salesforceRouter;
 
-const { createStripeInvoice, payStripeInvoice, voidStripeInvoice } =
-  stripeRouter;
+const {
+  createStripeInvoice,
+  payStripeInvoice,
+  voidStripeInvoice,
+  deleteDBEntry,
+} = stripeRouter;
 
 const recordTypes = [
   "SP",
@@ -37,7 +41,6 @@ const eventHandler = async (event) => {
 
   switch (changeType) {
     case "CREATE": {
-      console.log("CREATE case changeType: ", changeType);
       // initialize variable to payment record ID
       paymentType = For_Chart__c;
       // assign opp variable to the evaluated result of retrieveOppType function passing in recordId
@@ -72,29 +75,23 @@ const eventHandler = async (event) => {
     }
 
     case "UPDATE": {
-      console.log("UPDATE case changeType: ", changeType);
-
       if (!For_Chart__c) {
         const clientPayment = getPaymentType(recordId);
         if (clientPayment) paymentType = "Cost to Client";
       }
       // map changed fields from salesforce payload to updates object
       const updates = {};
-      // console.log("UPDATE change fields: ", changedFields);
       changedFields.forEach((field) => {
         updates[field] = event.payload[field];
       });
-      // console.log("UPDATE updates object: ", updates);
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
 
       //iterate through and update stripe invoice accordingly
 
       if (OutsideFundingSource__c) {
-        console.log("OUTSIDE FUNDING SOURCE");
       }
       if (npe01__Written_Off__c) {
-        console.log("MARK STRIPE INVOICE VOID");
         const written_off = npe01__Written_Off__c;
         written_off.boolean === true
           ? voidStripeInvoice(recordId)
@@ -109,7 +106,6 @@ const eventHandler = async (event) => {
 
       // if payment amount has changed in salesforce, finalized stripe invoices cannot be edited, but only created and deleted.
       if (npe01__Payment_Amount__c) {
-        console.log("UPDATE STRIPE INVOICE AMOUNT");
         stripeRouter.updatePaymentAmount(
           recordId,
           npe01__Payment_Amount__c,
@@ -118,16 +114,9 @@ const eventHandler = async (event) => {
       }
       break;
     }
+    // this is tricky because once you delete a transaction in salesforce, then when we try to void the transaction in stripe, it cannot because it needs to lookup the stripe id from the salesforce query which was deleted
     case "DELETE": {
-      // this is tricky because once you delete a transaction in salesforce, then when we try to void the transaction in stripe, it cannot because it needs to lookup the stripe id from the salesforce query which was deleted
-
-      // we just need to find the stripe invoice id from the deleted object body, and then delete it using the stripe api
-      console.log("DELETE case changeType: ", changeType);
-      console.log("this is the Delete Event", event);
-
-      // need to access deleted records and query the stripe id from it
-      //need to store salesforce and stripe ids so that when a payment is deleted, it can get voided/deleted in stripe
-      // voidStripeInvoice(recordId);
+      deleteDBEntry(event.payload.ChangeEventHeader.recordIds[0]);
       break;
     }
     default: {

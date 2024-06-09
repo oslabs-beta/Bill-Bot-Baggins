@@ -207,7 +207,7 @@ salesforceRouter.retreiveOppType = async (id) => {
 
 salesforceRouter.updateSalesforceStripeId = async (
   recordId,
-  stripeinvoiceId
+  stripeinvoiceId,
 ) => {
   const access_token = await getSalesForceAccessToken();
   const data = JSON.stringify({
@@ -232,7 +232,7 @@ salesforceRouter.updateSalesforceStripeId = async (
   axios
     .request(config)
     .then((response) => {
-      console.log(JSON.stringify(response.data));
+      // console.log(JSON.stringify(response.data));
     })
     .catch((error) => {
       console.log(error);

@@ -1,6 +1,6 @@
 const Stripe = require("stripe");
 const { salesforceRouter } = require("./salesforceRouter.js");
-
+const dbCollection = import("../server.mjs");
 const { getStripeId } = salesforceRouter;
 
 const config = {
@@ -10,14 +10,6 @@ const config = {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, config);
 
 const stripeRouter = {};
-/**
- * @typedef {Object} PaymentDetails
- * @property {string} account_name - The name of the account.
- * @property {number} amount - The payment amount.
- * @property {string} project_type - The type of the project.
- * @property {string} invoice_number - The invoice number.
- * @property {string} recordId - The record ID.
- */
 
 /**
  * creates invoice in Stripe to match payment record received from salesforce
@@ -43,7 +35,6 @@ stripeRouter.createStripeInvoice = async (paymentInfo) => {
    */
   if (!customerId) {
     // Create a new Customer
-    console.log("payment deets.account_name ", paymentInfo.account_name);
     const customer = await stripe.customers.create({
       name: paymentInfo.account_name,
       email: "lcharity@escsc.org",
@@ -62,7 +53,13 @@ stripeRouter.createStripeInvoice = async (paymentInfo) => {
     days_until_due: 30,
   });
 
-  console.log("new stripe invoice created in webhook route: ", newInvoice);
+  // create entry in db
+  const result = stripeRouter.createDBEntry(
+    paymentInfo.recordId,
+    newInvoice.id,
+  );
+  if (!result) console.log("unable to create db entry");
+
   /**
    * need product type from salesforce (passed in on arg object) to create the "product type" and then assign a default price (also on passed in object)
    */
@@ -129,8 +126,6 @@ stripeRouter.updatePaymentAmount = async (
   const stripeInvoiceId = await getStripeId(recordId);
   const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
 
-  console.log("invoice: ", invoice);
-
   //destructure all relevant paramters from previous stripe invoice
   const { customer: customer } = invoice;
 
@@ -145,12 +140,9 @@ stripeRouter.updatePaymentAmount = async (
     days_until_due: 30,
   });
 
-  console.log(newInvoice, "new invoice created");
-  // where is paymentInfor coming from?
-  //opportunity is coming form retrieve opp records
-  const opportunity = await salesforceRouter.retreiveOppType(recordId);
+  await stripeRouter.updateDBEntry(recordId, newInvoice.id);
 
-  console.log("this is the opportunity", opportunity);
+  const opportunity = await salesforceRouter.retreiveOppType(recordId);
 
   // where is invoice number coming from
   //it comes from name from the salesforce record but since
@@ -164,8 +156,6 @@ stripeRouter.updatePaymentAmount = async (
       unit_amount: newPaymentAmount * 100,
     },
   });
-
-  console.log("this is the product:", product);
 
   /**
    * add line item to invoice just created
@@ -187,4 +177,66 @@ stripeRouter.updatePaymentAmount = async (
   return finalInvoice;
 };
 
+stripeRouter.createDBEntry = async (salesforceID, stripeID) => {
+  try {
+    // create entry in database
+    const document = {
+      salesforceID: salesforceID,
+      stripeID: stripeID,
+    };
+    const collection = await dbCollection;
+    await collection.dbCollection.insertOne(document);
+    await collection.dbCollection.find({}).toArray();
+    return;
+  } catch (error) {
+    console.log(`Error occurred in stripeRouter.createDBEntry: ${error}`);
+  }
+};
+
+stripeRouter.updateDBEntry = async (salesforceID, stripeID) => {
+  try {
+    const collection = await dbCollection;
+    const result = await collection.dbCollection.updateOne(
+      { salesforceID: salesforceID },
+      { $set: { stripeID: stripeID } },
+    );
+
+    if (!result) throw new Error("unable to update DB entry");
+    return;
+  } catch (error) {
+    console.log(`Error occurred in stripeRouter.updateDBEntry: ${error}`);
+  }
+};
+
+stripeRouter.deleteDBEntry = async (salesforceID) => {
+  try {
+    // find the corresponding stripe ID associated with the salesforce ID
+    const collection = await dbCollection;
+
+    const stripeObject = await collection.dbCollection
+      .find({
+        salesforceID: salesforceID,
+      })
+      .toArray();
+
+    const stripeId = stripeObject[0].stripeID;
+
+    let result = await collection.dbCollection.deleteOne({
+      salesforceID: salesforceID,
+    });
+
+    if (!result) {
+      throw new Error(
+        "Error occurred in stripeRouter.deleteDBEntry: unable to find stripeID",
+      );
+    }
+    // void stripe invoice
+    const updatedInvoice = await stripe.invoices.voidInvoice(stripeId);
+    if (updatedInvoice)
+      console.log(`successfully canceled invoice ${stripeId} in stripe`);
+    return;
+  } catch (error) {
+    console.log(`Error occurred in stripeRouter.deleteDBEntry: ${error}`);
+  }
+};
 exports.stripeRouter = stripeRouter;
