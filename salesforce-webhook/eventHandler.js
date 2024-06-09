@@ -53,7 +53,6 @@ const eventHandler = async (event) => {
       if (recordTypes.includes(opportunity.type)) {
         const paymentAmount = npe01__Payment_Amount__c;
         const invoice_number = Name;
-        console.log("payment amount: ", paymentAmount);
 
         const paymentDetails = {
           account_name: opportunity.account_name,
@@ -63,7 +62,6 @@ const eventHandler = async (event) => {
           recordId: recordId,
         };
 
-        console.log("these are the payment details", paymentDetails);
         //create invoice in stripe
         const stripeInvoice = await createStripeInvoice(paymentDetails);
 
@@ -75,7 +73,6 @@ const eventHandler = async (event) => {
 
     case "UPDATE": {
       console.log("UPDATE case changeType: ", changeType);
-      console.log(event);
 
       if (!For_Chart__c) {
         const clientPayment = getPaymentType(recordId);
@@ -83,11 +80,11 @@ const eventHandler = async (event) => {
       }
       // map changed fields from salesforce payload to updates object
       const updates = {};
-      console.log("UPDATE change fields: ", changedFields);
+      // console.log("UPDATE change fields: ", changedFields);
       changedFields.forEach((field) => {
         updates[field] = event.payload[field];
       });
-      console.log("UPDATE updates object: ", updates);
+      // console.log("UPDATE updates object: ", updates);
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
 
@@ -122,8 +119,15 @@ const eventHandler = async (event) => {
       break;
     }
     case "DELETE": {
+      // this is tricky because once you delete a transaction in salesforce, then when we try to void the transaction in stripe, it cannot because it needs to lookup the stripe id from the salesforce query which was deleted
+
+      // we just need to find the stripe invoice id from the deleted object body, and then delete it using the stripe api
+      console.log("DELETE case changeType: ", changeType);
+      console.log("this is the Delete Event", event);
+
+      // need to access deleted records and query the stripe id from it
       //need to store salesforce and stripe ids so that when a payment is deleted, it can get voided/deleted in stripe
-      voidStripeInvoice(recordId);
+      // voidStripeInvoice(recordId);
       break;
     }
     default: {
