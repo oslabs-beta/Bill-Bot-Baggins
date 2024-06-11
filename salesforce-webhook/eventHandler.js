@@ -11,6 +11,7 @@ const {
   deleteDBEntry,
 } = stripeRouter;
 
+// record types for different transactions within salesforce for ESC bookkeeping
 const recordTypes = [
   "SP",
   "BD",
@@ -29,6 +30,10 @@ const recordTypes = [
   "DDP",
 ];
 
+/**
+ * eventHandler handles streamed events from the salesforce webhook, and makes corresponding CREATE, UPDATE, and DELETE changes in the stripe webhooks
+ * @param {object} event - the streamed event from the stripe router grpc webhook
+ */
 const eventHandler = async (event) => {
   let opportunity;
   let paymentType = {};
@@ -87,6 +92,10 @@ const eventHandler = async (event) => {
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
 
+      console.log(
+        "these are the updates coming in, check to see what paid__c is",
+        updates,
+      );
       //iterate through and update stripe invoice accordingly
 
       if (OutsideFundingSource__c) {
@@ -98,14 +107,14 @@ const eventHandler = async (event) => {
           : console.log("invoice not marked void");
       }
       if (npe01__Paid__c) {
-        const payobject = npe01__Paid__c;
-        payobject.boolean === true
+        npe01__Paid__c === true
           ? payStripeInvoice(recordId)
           : console.log("invoice not marked paid");
       }
 
       // if payment amount has changed in salesforce, finalized stripe invoices cannot be edited, but only created and deleted.
       if (npe01__Payment_Amount__c) {
+        ("update payment hit");
         stripeRouter.updatePaymentAmount(
           recordId,
           npe01__Payment_Amount__c,
@@ -114,7 +123,7 @@ const eventHandler = async (event) => {
       }
       break;
     }
-    // this is tricky because once you delete a transaction in salesforce, then when we try to void the transaction in stripe, it cannot because it needs to lookup the stripe id from the salesforce query which was deleted
+
     case "DELETE": {
       deleteDBEntry(event.payload.ChangeEventHeader.recordIds[0]);
       break;

@@ -5,9 +5,7 @@ import salesforceController from "./salesforce-pub-sub-api.mjs";
 const app = express();
 app.use(express.json());
 
-/**
- * open salesforce pub-sub API connection
- */
+// invocation opens salesforce pub-sub API connection
 salesforceController();
 
 app.listen(3030, () => console.log("server is listening on port 3030"));
