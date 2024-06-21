@@ -34,6 +34,7 @@ const recordTypes = [
  * eventHandler handles streamed events from the salesforce webhook, and makes corresponding CREATE, UPDATE, and DELETE changes in the stripe webhooks
  * @param {object} event - the streamed event from the stripe router grpc webhook
  */
+
 const eventHandler = async (event) => {
   let opportunity;
   let paymentType = {};
