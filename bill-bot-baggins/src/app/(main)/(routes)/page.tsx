@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import React from 'react';
-import { Button } from '@/src/components/ui/button';
-import TeamMember from '@/src/components/TeamMember';
+import TeamMember from '@/src/components/team-member';
 import Logo from '@/src/components/logo';
 
 export default function Page() {
   return (
     <div className='relative grid h-full justify-center lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <div className='absolute inset-0 bg-[url("/ales-nesetril-background.jpg")] bg-cover bg-left' />
+      <div className='absolute inset-0 bg-[url("/ales-nesetril-background.png")] bg-cover bg-left' />
       <div className='container relative flex h-full max-w-2xl flex-col'>
         <Logo size='large' className='mt-5' />
         <div className='text-slate-25 pt-10 text-4xl sm:text-6xl'>
@@ -26,15 +25,20 @@ export default function Page() {
                   PayStream is an Open Source product developed in collaboration
                   with OS Labs.
                 </p>
-                <div className='pt-4'>
-                  <Button className='my-3 mr-3 rounded-full bg-green-200 text-sm font-bold text-black transition-all hover:bg-green-200/90 sm:text-lg'>
-                    <Link href='/admin'>Experience PayStream</Link>
-                  </Button>
-                  <Button className='sm:text-md my-3 rounded-full border-2 border-green-200 bg-transparent p-4 text-sm text-green-200 transition-all hover:bg-green-200/90 hover:text-black'>
-                    <Link href='https://github.com/oslabs-beta/PayStream'>
-                      Learn more
-                    </Link>
-                  </Button>
+                <div className='flex items-center gap-2 pt-4'>
+                  <Link
+                    className='rounded-full bg-green-200 px-4 py-2 font-semibold text-neutral-900 transition-all hover:border-green-200 hover:bg-green-200/80 hover:text-neutral-900/90'
+                    href='/app/dashboard'
+                  >
+                    Experience PayStream
+                  </Link>
+
+                  <Link
+                    className='sm:text-md rounded-full border-2 border-green-200 bg-transparent px-4 py-2 text-sm text-green-200 transition-all hover:bg-green-200/90 hover:text-black'
+                    href='https://github.com/oslabs-beta/PayStream'
+                  >
+                    Learn more
+                  </Link>
                 </div>
               </div>
             </footer>

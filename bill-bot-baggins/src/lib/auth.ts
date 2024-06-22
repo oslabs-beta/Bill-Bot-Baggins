@@ -1,7 +1,7 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthConfig } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { NextResponse } from 'next/server';
+import { getUserByEmail } from './server-utils';
 import { loginFormSchema } from './validations/form';
 
 const config = {
@@ -11,29 +11,28 @@ const config = {
   providers: [
     Credentials({
       async authorize(credentials) {
-        console.log(credentials);
         // runs on login
-        // // validate credentials
-        // const validatedCredentials = loginFormSchema.safeParse(credentials);
-        // if (!validatedCredentials.success) {
-        //   return null;
-        // }
-        // // extract values
-        // const { email, password } = validatedCredentials.data;
-        // const user = await getUserByEmail(email);
-        // if (!user) {
-        //   console.log('No user found');
-        //   return null;
-        // }
-        // const passwordsMatch = await bcrypt.compare(
-        //   password,
-        //   user.hashedPassword
-        // );
-        // if (!passwordsMatch) {
-        //   console.log('Invalid credentials');
-        //   return null;
-        // }
-        // return user;
+        // validate credentials
+        const validatedCredentials = loginFormSchema.safeParse(credentials);
+        if (!validatedCredentials.success) {
+          return null;
+        }
+        // extract values
+        const { email, password } = validatedCredentials.data;
+        const user = await getUserByEmail(email);
+        if (!user) {
+          console.log('No user found');
+          return null;
+        }
+        const passwordsMatch = await bcrypt.compare(
+          password,
+          user.hashedPassword
+        );
+        if (!passwordsMatch) {
+          console.log('Invalid credentials');
+          return null;
+        }
+        return user;
       },
     }),
   ],
@@ -41,79 +40,38 @@ const config = {
     authorized: ({ auth, request }) => {
       // runs on every request with middleware
       const isLoggedIn = Boolean(auth?.user);
-      const isAccessingApp = request.nextUrl.pathname.includes('/app');
+      const requestedPath = request.nextUrl.pathname;
 
-      if (!isLoggedIn && isAccessingApp) {
+      if (!isLoggedIn && requestedPath.includes('/app')) {
+        // Redirect unauthenticated users trying to access protected paths
         return false;
-      }
-
-      if (isLoggedIn && isAccessingApp && !auth?.user.hasPaid) {
-        return NextResponse.redirect(new URL('/payment', request.nextUrl));
-      }
-
-      if (isLoggedIn && isAccessingApp && auth?.user.hasPaid) {
-        return true;
       }
 
       if (
         isLoggedIn &&
-        (request.nextUrl.pathname.includes('/login') ||
-          request.nextUrl.pathname.includes('/signup')) &&
-        auth?.user.hasPaid
+        (requestedPath.includes('/login') || requestedPath.includes('/signup'))
       ) {
+        // Redirect logged-in users away from the login page
         return Response.redirect(new URL('/app/dashboard', request.nextUrl));
       }
 
-      if (isLoggedIn && !isAccessingApp && !auth?.user.hasPaid) {
-        console.log(request.nextUrl.pathname);
-        if (
-          request.nextUrl.pathname.includes('/login') ||
-          request.nextUrl.pathname.includes('/signup')
-        ) {
-          console.log('This is the check');
-
-          return Response.redirect(new URL('/payment', request.nextUrl));
-        }
-
-        return true;
-      }
-
-      if (!isLoggedIn && !isAccessingApp) {
-        return true;
-      }
-
-      return false;
+      return true; // Default allow
     },
-    jwt: async ({ token, user, trigger }) => {
+    jwt: async ({ token, user }) => {
       if (user) {
         // on sign in
-        token.userId = user.id;
+        token.userId = user.id!;
         token.email = user.email!;
-        token.hasPaid = user.hasPaid;
-      }
-
-      if (trigger === 'update') {
-        // on every request
-        const user = await getUserByEmail(token.email);
-        if (user) {
-          token.hasPaid = user.hasPaid;
-        }
       }
 
       return token;
     },
     session: ({ session, token }) => {
       session.user.id = token.userId;
-      session.user.hasPaid = token.hasPaid;
 
       return session;
     },
   },
-};
+} satisfies NextAuthConfig;
 
-export const {
-  auth,
-  signIn,
-  signOut,
-  handlers: { GET, POST },
-} = NextAuth(config);
+export const { auth, signIn, signOut, handlers } = NextAuth(config);

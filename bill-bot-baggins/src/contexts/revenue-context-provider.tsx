@@ -114,7 +114,6 @@ export default function RevenueContextProvider({
 }
 
 function calculatePercentChange(currentRevenue: number, pastRevenue: number) {
-  console.log(pastRevenue);
   if (pastRevenue === 0) {
     return currentRevenue > 0 ? 100 : 0;
   }

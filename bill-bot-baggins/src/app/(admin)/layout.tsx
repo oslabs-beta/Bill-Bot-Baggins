@@ -1,9 +1,9 @@
 import { getSalesForceInvoiceData } from '@/src/actions/actions';
-import Navbar from '@/src/components/Navbar';
+import { Footer } from '@/src/components';
 import RevenueContextProvider from '@/src/contexts/revenue-context-provider';
 
 export default async function Layout({
-  children, // will be a page or nested layout
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -12,10 +12,10 @@ export default async function Layout({
 
   return (
     <RevenueContextProvider invoiceData={invoiceData}>
-      <section className='h-screen bg-neutral-950'>
-        <Navbar />
-        {children}
-      </section>
+      {/* <section className='flex min-h-screen flex-col bg-[url("/bg-pattern.jpeg")]'> */}
+      {children}
+      {/* <Footer />
+      </section> */}
     </RevenueContextProvider>
   );
 }

@@ -68,7 +68,7 @@ export default function DataTable() {
   };
 
   return (
-    <>
+    <main className='border border-neutral-700 bg-card p-2'>
       <div className='flex items-center space-x-4'>
         <div className='flex items-center'>
           <Input
@@ -104,7 +104,7 @@ export default function DataTable() {
         </Button>
       </div>
       <div className='rounded-md border'>
-        <Table>
+        <Table className='bg-card'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -176,6 +176,6 @@ export default function DataTable() {
           </strong>
         </span>
       </div>
-    </>
+    </main>
   );
 }

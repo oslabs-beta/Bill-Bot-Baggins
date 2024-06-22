@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import InvoiceSection from '@/src/components/InvoiceSection';
+import InvoiceSection from '@/src/components/invoice-section';
 import {
   Card,
   CardContent,

@@ -1,10 +1,17 @@
 'use server';
 
+import prisma from '../lib/db';
 import { getToken } from 'sf-jwt-token';
 import { InvoiceProps } from '../lib/types';
 import { PaymentInfoSchema } from '../lib/validations/salesforce';
 import { GRAPH_QL_QUERY } from '../lib/constants';
 import Stripe from 'stripe';
+import { Prisma } from '@prisma/client';
+import { loginFormSchema } from '../lib/validations/form';
+import bcrypt from 'bcryptjs';
+import { AuthError } from 'next-auth';
+import { signIn, signOut } from '../lib/auth';
+import { redirect } from 'next/navigation';
 
 // -- ENV variables --
 
@@ -17,6 +24,86 @@ const {
   SALESFORCE_GRAPHQL_URI,
   SALESFORCE_COOKIE_AUTH,
 } = process.env;
+
+// -- User actions
+export async function logIn(prevState: unknown, formData: unknown) {
+  if (!(formData instanceof FormData)) {
+    return {
+      message: 'Invalid form data.',
+    };
+  }
+
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin': {
+          return {
+            message: 'Invalid credentials.',
+          };
+        }
+        default: {
+          return {
+            message: 'Error. Could not sign in.',
+          };
+        }
+      }
+    }
+    redirect('/app/dashboard');
+  }
+}
+
+export async function signUp(prevState: unknown, formData: unknown) {
+  // check if formData is a FormData type
+  if (!(formData instanceof FormData)) {
+    return {
+      message: 'Invalid form data.',
+    };
+  }
+
+  // convert formData to a JS object
+  const formDataEntries = Object.fromEntries(formData.entries());
+  const validatedFormData = loginFormSchema.safeParse(formDataEntries);
+
+  // validation
+  if (!validatedFormData.success) {
+    return {
+      message: 'Invalid form data.',
+    };
+  }
+
+  const { email, password } = validatedFormData.data;
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    await prisma.user.create({
+      data: {
+        email,
+        hashedPassword,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return {
+          message: 'Email already exists.',
+        };
+      }
+    }
+  }
+
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    redirect('/app/dashboard');
+  }
+}
+
+export async function logOut() {
+  await signOut({ redirectTo: '/' });
+}
 
 // -- Salesforce actions
 

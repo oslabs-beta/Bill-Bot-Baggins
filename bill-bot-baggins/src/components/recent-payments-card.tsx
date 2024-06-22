@@ -1,5 +1,5 @@
 import { PaymentProps } from '../lib/types';
-import RecentSales from './RecentSales';
+import RecentSales from './recent-sales';
 import {
   Card,
   CardContent,

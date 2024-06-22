@@ -66,7 +66,13 @@ export default function MonthlyRevenueChart({
           tickFormatter={(value) => `$${value}`}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey='revenue' fill='#EA580C' radius={[4, 4, 0, 0]} />
+        <defs>
+          <linearGradient id='gradient' x1='0' y1='0' x2='1' y2='0'>
+            <stop offset='5%' stopColor='#818cf8' stopOpacity={0.8} />
+            <stop offset='95%' stopColor='#6366f1' stopOpacity={0.7} />
+          </linearGradient>
+        </defs>
+        <Bar dataKey='revenue' fill='url(#gradient)' radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

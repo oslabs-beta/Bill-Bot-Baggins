@@ -8,14 +8,13 @@ type LogoProps = {
 };
 
 export default function Logo({ className, size }: LogoProps) {
-  // const imageSize = size === 'small' ? 200 : 400;
-  const imageSize = 200;
+  const imageSize = size === 'small' ? 200 : 200;
 
   return (
     <Link className={cn(className)} href='/'>
       <Image
         src={'/logo-transparent.svg'}
-        alt='logo'
+        alt='PayStream Logo'
         width={imageSize}
         height={imageSize}
       />

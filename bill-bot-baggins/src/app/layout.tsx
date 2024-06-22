@@ -1,10 +1,10 @@
 import '@/src/styles/globals.css';
 
 import type { Metadata } from 'next';
-import { Open_Sans } from 'next/font/google';
-import { ClerkProvider } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
-const font = Open_Sans({ subsets: ['latin'] });
+import { Inter } from 'next/font/google';
+import { SessionProvider } from 'next-auth/react';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'PayStream',
@@ -21,14 +21,8 @@ export default async function RootLayout({
       <head>
         <link rel='icon' href='/favicon.ico' />
       </head>
-      <body className={`${font.className} dark h-screen`}>
-        <ClerkProvider
-          appearance={{
-            baseTheme: dark,
-          }}
-        >
-          {children}
-        </ClerkProvider>
+      <body className={`${inter.className} dark m-0 h-screen p-0`}>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

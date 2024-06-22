@@ -24,8 +24,16 @@ export default function DashboardOverview() {
   return (
     <>
       <div className='flex flex-col gap-3 md:flex-row'>
-        <RevenueCard revenue={revenueYTD} revenueGrowth={yearRevenueGrowth} />
-        <RevenueCard revenue={revenueMTD} revenueGrowth={monthRevenueGrowth} />
+        <RevenueCard
+          type='year'
+          revenue={revenueYTD}
+          revenueGrowth={yearRevenueGrowth}
+        />
+        <RevenueCard
+          type='month'
+          revenue={revenueMTD}
+          revenueGrowth={monthRevenueGrowth}
+        />
         <OutstandingInvoicesCard outstandingInvoices={outstandingInvoices} />
       </div>
       <div className='flex flex-col gap-4 md:flex-row'>

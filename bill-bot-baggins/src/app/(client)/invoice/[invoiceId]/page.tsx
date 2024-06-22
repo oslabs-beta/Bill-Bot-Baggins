@@ -1,4 +1,4 @@
-import InvoiceDisplay from '@/src/components/InvoiceDisplay';
+import InvoiceDisplay from '@/src/components/invoice-display';
 import { InvoiceId } from '@/src/lib/types';
 import { getStripeInvoiceData } from '@/src/actions/actions';
 import {

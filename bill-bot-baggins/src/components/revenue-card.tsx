@@ -1,11 +1,14 @@
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export default function RevenueCard({
   revenue,
   revenueGrowth,
+  type,
 }: {
   revenue: number;
   revenueGrowth: number;
+  type: 'year' | 'month';
 }) {
   function getRevenueGrowthText(revenueGrowth: number) {
     return revenueGrowth > 0 ? `+${revenueGrowth}` : revenueGrowth;
@@ -13,7 +16,9 @@ export default function RevenueCard({
   return (
     <Card className='w-full md:w-1/3'>
       <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-        <CardTitle className='text-sm font-medium'>Revenue YTD</CardTitle>
+        <CardTitle className='text-sm font-medium'>
+          {`Revenue this ${type}`}
+        </CardTitle>
         <svg
           xmlns='http://www.w3.org/2000/svg'
           viewBox='0 0 24 24'
@@ -35,8 +40,14 @@ export default function RevenueCard({
             currency: 'USD',
           }
         )}`}</div>
-        <p className='text-xs text-muted-foreground'>
-          {`${getRevenueGrowthText(revenueGrowth)}% from last year`}
+        <p className='flex items-center gap-1 text-xs text-muted-foreground'>
+          <span
+            className={`flex items-center gap-1 ${revenueGrowth > 0 ? 'text-green-500' : 'text-red-500'}`}
+          >
+            {revenueGrowth > 0 ? <TrendingUp /> : <TrendingDown />}
+            {`${getRevenueGrowthText(revenueGrowth)}%`}
+          </span>
+          {`from last ${type}`}
         </p>
       </CardContent>
     </Card>
