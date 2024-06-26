@@ -8,6 +8,7 @@ const config = {
   pages: {
     signIn: '/login',
   },
+  trustHost: true,
   providers: [
     Credentials({
       async authorize(credentials) {

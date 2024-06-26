@@ -1,8 +1,8 @@
-import { UserButton } from '@clerk/nextjs';
-import React from 'react';
+// import { UserButton } from '@clerk/nextjs';
+// import React from 'react';
 
-function Profile() {
-  return <UserButton afterSignOutUrl={'/'} />;
-}
+// function Profile() {
+//   return <UserButton afterSignOutUrl={'/'} />;
+// }
 
-export default Profile;
+// export default Profile;

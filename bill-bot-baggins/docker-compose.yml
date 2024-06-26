@@ -1,0 +1,9 @@
+version: '3'
+services:
+  your_service_name:
+    image: paystream-fe
+    ports:
+      - '3000:3000'
+    volumes:
+      - /Users/peelintaters/Desktop/PayStream-1/bill-bot-baggins/.env:/app/.env
+      - /Users/peelintaters/Desktop/PayStream-1/bill-bot-baggins/prisma/dev.db:/app/prisma/dev.db
