@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  frontend:
+    image: paystream-fe
+    ports:
+      - "3000:3000"
+    volumes:
+      - /Users/peelintaters/Desktop/PayStream-1/bill-bot-baggins/.env:/app/.env
+      - /Users/peelintaters/Desktop/PayStream-1/bill-bot-baggins/prisma/dev.db:/app/prisma/dev.db
+
+  salesforce-webhook:
+    build:
+      context: ./salesforce-webhook
+      dockerfile: Dockerfile
+    ports:
+      - "3030:3030"
+
+  stripe-webhook:
+    build:
+      context: ./stripe-webhook
+      dockerfile: Dockerfile
+    ports:
+      - "4242:4242"

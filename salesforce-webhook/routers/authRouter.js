@@ -8,7 +8,7 @@ const getSalesForceAccessToken = async () => {
     BASE64_PRIVATE_KEY,
     SALESFORCE_CLIENT_ID,
     SALESFORCE_USERNAME,
-    TEST_URL,
+    SALESFORCE_TEST_URL,
   } = process.env;
 
   const privateKey = Buffer.from(BASE64_PRIVATE_KEY, "base64").toString(
@@ -20,7 +20,7 @@ const getSalesForceAccessToken = async () => {
     const jwtTokenResponse = await getToken({
       iss: SALESFORCE_CLIENT_ID,
       sub: SALESFORCE_USERNAME,
-      aud: TEST_URL,
+      aud: SALESFORCE_TEST_URL,
       privateKey: privateKey,
     });
 
