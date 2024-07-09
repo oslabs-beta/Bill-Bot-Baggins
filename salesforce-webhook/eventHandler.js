@@ -8,7 +8,7 @@ const {
   createStripeInvoice,
   payStripeInvoice,
   voidStripeInvoice,
-  deleteDBEntry,
+  deleteStripeInvoice,
 } = stripeRouter;
 
 // record types for different transactions within salesforce for ESC bookkeeping
@@ -73,6 +73,7 @@ const eventHandler = async (event) => {
 
         //create invoice in stripe
         const stripeInvoice = await createStripeInvoice(paymentDetails);
+        console.log("fired");
 
         //update salesforce record with stripe invoice id
         await updateSalesforceStripeId(recordId, stripeInvoice.id);
@@ -93,12 +94,7 @@ const eventHandler = async (event) => {
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
 
-      console.log(
-        "these are the updates coming in, check to see what paid__c is",
-        updates,
-      );
       //iterate through and update stripe invoice accordingly
-
       if (OutsideFundingSource__c) {
       }
       if (npe01__Written_Off__c) {
@@ -126,7 +122,7 @@ const eventHandler = async (event) => {
     }
 
     case "DELETE": {
-      deleteDBEntry(event.payload.ChangeEventHeader.recordIds[0]);
+      deleteStripeInvoice(event.payload.ChangeEventHeader.recordIds[0]);
       break;
     }
     default: {

@@ -4,7 +4,7 @@ const { getSalesForceAccessToken } = require("./authRouter.js");
 const salesforceRouter = {};
 
 /**
- * retrieves the stripe invoice id corresponding to the salesforce transaction
+ * @description retrieves the stripe invoice id corresponding to the salesforce transaction
  * @param {string} recordId - gets salesforce id corresponding to the record id
  * @returns
  */
@@ -49,7 +49,7 @@ salesforceRouter.getStripeId = async (recordId) => {
 };
 
 /**
- * retrieves payment type from salesforce api
+ * @description retrieves payment type from salesforce api
  * @param {string} id - payment record id from salesforce data change capture event
  * @returns
  */
@@ -96,7 +96,7 @@ salesforceRouter.getPaymentType = async (id) => {
 };
 
 /**
- * helper function - graphQL api call to salesforce for opportunity record ID
+ * @description helper function - graphQL api call to salesforce for opportunity record ID
  * @param { id } string - payment record id from data change capture event
  * @return { string } - salesforce opportunity id
  */
@@ -146,7 +146,7 @@ salesforceRouter.getOppRecordId = async (id) => {
 };
 
 /**
- * graphQL salesforce API call to retrive opportunity record type for payment record captured in data change event
+ * @description graphQL salesforce API call to retrive opportunity record type for payment record captured in data change event
  * @param {string} id - payment record id from salesforce data change capture event
  * @returns { object }  opportunty type abbreviation, type - long form, and account name properties
  */
@@ -216,7 +216,7 @@ salesforceRouter.retreiveOppType = async (id) => {
 };
 
 /**
- * updates the salesforce transaction of the recordId with the new stripeInvoiceId
+ * @description updates the salesforce transaction of the recordId with the new stripeInvoiceId
  * @param {string} recordId - payment record id from salesforce data change capture event
  * @param {string} stripeInvoiceId - stripe invoice id corresponding the salesforce transaction
  * @returns

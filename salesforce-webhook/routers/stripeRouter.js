@@ -1,5 +1,6 @@
 const Stripe = require("stripe");
 const { salesforceRouter } = require("./salesforceRouter.js");
+const { ServerDescription } = require("mongodb");
 const dbCollection = import("../server.mjs");
 const { getStripeId } = salesforceRouter;
 
@@ -12,7 +13,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, config);
 const stripeRouter = {};
 
 /**
- * creates invoice in Stripe to match payment record received from salesforce
+ * @description creates invoice in Stripe to match payment record received from salesforce
  * @param {object} Paymentdetails - data needed to create stripe invoice
  * @return {object} returns the finalized stripe invoice object
  */
@@ -51,14 +52,8 @@ stripeRouter.createStripeInvoice = async (paymentInfo) => {
     auto_advance: false,
     collection_method: "send_invoice",
     days_until_due: 30,
+    metadata: { salesforce_id: paymentInfo.recordId },
   });
-
-  // create entry in db
-  const result = stripeRouter.createDBEntry(
-    paymentInfo.recordId,
-    newInvoice.id,
-  );
-  if (!result) console.log("unable to create db entry");
 
   /**
    * need product type from salesforce (passed in on arg object) to create the "product type" and then assign a default price (also on passed in object)
@@ -85,7 +80,7 @@ stripeRouter.createStripeInvoice = async (paymentInfo) => {
 };
 
 /**
- * this updates the adjoining stripe invoice to
+ * @description this updates the adjoining stripe invoice to
  * @param {string} recordId
  * @returns the paidInvoice
  */
@@ -121,11 +116,12 @@ stripeRouter.voidStripeInvoice = async (recordId) => {
 };
 
 /**
- * since in stripe invoices can only be voided and created, this:
- * voids the previous stripe invoice
- * creates a new stripe invoice
- * updates the salesforce transaction with the new stripe invoice id
- * updates corresponding database entry with the updated info
+ * @description
+ * - since in stripe invoices can only be voided and created, this:
+ * - voids the previous stripe invoice
+ * - creates a new stripe invoice
+ * - updates the salesforce transaction with the new stripe invoice id
+ * - updates corresponding database entry with the updated info
  * @param {string} recordId - the salesforceId
  * @param {number} newPaymentAmount - what the payment amount in the salesforce & stripe accounts should be set to
  * @param {string} invoice_number - the stripe invoice number from the salesforce account used to create and name the new stripe product
@@ -141,7 +137,7 @@ stripeRouter.updatePaymentAmount = async (
   const stripeInvoiceId = await getStripeId(recordId);
   const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
 
-  //destructure all relevant paramters from previous stripe invoice
+  //destructure all relevant parameters from previous stripe invoice
   const { customer: customer } = invoice;
 
   //void stripe invoice
@@ -153,9 +149,8 @@ stripeRouter.updatePaymentAmount = async (
     auto_advance: false,
     collection_method: "send_invoice",
     days_until_due: 30,
+    metadata: { salesforce_id: recordId },
   });
-
-  await stripeRouter.updateDBEntry(recordId, newInvoice.id);
 
   const opportunity = await salesforceRouter.retreiveOppType(recordId);
 
@@ -179,9 +174,7 @@ stripeRouter.updatePaymentAmount = async (
     invoice: newInvoice.id,
   });
 
-  /**
-   * retrieve final invoice from stripe
-   * */
+  // retrieve final invoice from stripe
   const finalInvoice = await stripe.invoices.finalizeInvoice(newInvoice.id);
   //link previous salesforce record to new stripe invoice id
   await salesforceRouter.updateSalesforceStripeId(recordId, finalInvoice.id);
@@ -191,76 +184,22 @@ stripeRouter.updatePaymentAmount = async (
 };
 
 /**
- * creates a new entry within the mongoDB store
- * @param {string} salesforceID - record Id from Salesforce
- * @param {string} stripeID - invoice Id from Stripe
- * @returns
- */
-stripeRouter.createDBEntry = async (salesforceID, stripeID) => {
-  try {
-    // create entry in database
-    const document = {
-      salesforceID: salesforceID,
-      stripeID: stripeID,
-    };
-    const collection = await dbCollection;
-    await collection.dbCollection.insertOne(document);
-    await collection.dbCollection.find({}).toArray();
-    return;
-  } catch (error) {
-    console.log(`Error occurred in stripeRouter.createDBEntry: ${error}`);
-  }
-};
-
-/**
- * updates existing document containing the salesforce ID with the new stripe ID
- * @param {string} salesforceID
- * @param {string} stripeID
- * @returns
- */
-stripeRouter.updateDBEntry = async (salesforceID, stripeID) => {
-  try {
-    const collection = await dbCollection;
-    const result = await collection.dbCollection.updateOne(
-      { salesforceID: salesforceID },
-      { $set: { stripeID: stripeID } },
-    );
-
-    if (!result) throw new Error("unable to update DB entry");
-    return;
-  } catch (error) {
-    console.log(`Error occurred in stripeRouter.updateDBEntry: ${error}`);
-  }
-};
-
-/**
- * deletes the stripe id associated with the salesforce document within the mongoDB data store
- * then voids the invoice within stripe
+ * @description deletes the stripe id associated with the salesforce recordId within stripe
  * @param {string} salesforceID - of the deleted node
  * @returns
- */
-stripeRouter.deleteDBEntry = async (salesforceID) => {
+ **/
+stripeRouter.deleteStripeInvoice = async (salesforceID) => {
   try {
-    // find the corresponding stripe ID associated with the salesforce ID
-    const collection = await dbCollection;
-
-    const stripeObject = await collection.dbCollection
-      .find({
-        salesforceID: salesforceID,
-      })
-      .toArray();
-
-    const stripeId = stripeObject[0].stripeID;
-
-    let result = await collection.dbCollection.deleteOne({
-      salesforceID: salesforceID,
+    const invoices = await stripe.invoices.list({
+      limit: 10,
     });
 
-    if (!result) {
-      throw new Error(
-        "Error occurred in stripeRouter.deleteDBEntry: unable to find stripeID",
-      );
-    }
+    const invoice = invoices.data.filter((invoice) => {
+      return invoice.metadata.salesforce_id === salesforceID;
+    });
+
+    const stripeId = invoice[0].id;
+
     // void stripe invoice
     const updatedInvoice = await stripe.invoices.voidInvoice(stripeId);
     if (updatedInvoice)
