@@ -12,7 +12,7 @@ const getSalesForceAccessToken = async () => {
   } = process.env;
 
   const privateKey = Buffer.from(BASE64_PRIVATE_KEY, "base64").toString(
-    "utf-8"
+    "utf-8",
   );
 
   try {

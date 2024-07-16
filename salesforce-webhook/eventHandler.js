@@ -4,9 +4,14 @@ const { stripeRouter } = require("./routers/stripeRouter.js");
 const { retreiveOppType, updateSalesforceStripeId, getPaymentType } =
   salesforceRouter;
 
-const { createStripeInvoice, payStripeInvoice, voidStripeInvoice } =
-  stripeRouter;
+const {
+  createStripeInvoice,
+  payStripeInvoice,
+  voidStripeInvoice,
+  deleteStripeInvoice,
+} = stripeRouter;
 
+// record types for different transactions within salesforce for ESC bookkeeping
 const recordTypes = [
   "SP",
   "BD",
@@ -25,6 +30,11 @@ const recordTypes = [
   "DDP",
 ];
 
+/**
+ * eventHandler handles streamed events from the salesforce webhook, and makes corresponding CREATE, UPDATE, and DELETE changes in the stripe webhooks
+ * @param {object} event - the streamed event from the stripe router grpc webhook
+ */
+
 const eventHandler = async (event) => {
   let opportunity;
   let paymentType = {};
@@ -32,36 +42,38 @@ const eventHandler = async (event) => {
     event.payload.ChangeEventHeader;
   const { For_Chart__c, npe01__Payment_Amount__c, Name } = event.payload;
   const recordId = recordIds[0];
-  
+
   if (changedFields.length === 1) return;
 
   switch (changeType) {
-
     case "CREATE": {
-      console.log("CREATE case changeType: ", changeType);
       // initialize variable to payment record ID
       paymentType = For_Chart__c;
       // assign opp variable to the evaluated result of retrieveOppType function passing in recordId
-      if (paymentType.string == "Cost to Client")
+      if (paymentType == "Cost to Client")
         opportunity = await retreiveOppType(recordId);
-      else
+      else {
         console.log(
-          "This event does not meet the requirements for creatings a stripe invoice"
+          "This event does not meet the requirements for creating a stripe invoice",
         );
+        break;
+      }
+
       if (recordTypes.includes(opportunity.type)) {
         const paymentAmount = npe01__Payment_Amount__c;
         const invoice_number = Name;
-        console.log("payment amount: ", paymentAmount.double);
 
         const paymentDetails = {
           account_name: opportunity.account_name,
-          amount: paymentAmount.double,
+          amount: paymentAmount,
           project_type: opportunity.project_type,
-          invoice_number: invoice_number.string,
+          invoice_number: invoice_number,
           recordId: recordId,
         };
+
         //create invoice in stripe
         const stripeInvoice = await createStripeInvoice(paymentDetails);
+        console.log("fired");
 
         //update salesforce record with stripe invoice id
         await updateSalesforceStripeId(recordId, stripeInvoice.id);
@@ -70,44 +82,47 @@ const eventHandler = async (event) => {
     }
 
     case "UPDATE": {
-
-      console.log("UPDATE case changeType: ", changeType);
-
       if (!For_Chart__c) {
         const clientPayment = getPaymentType(recordId);
         if (clientPayment) paymentType = "Cost to Client";
       }
-      // console.log("UPDATE payment type: ", paymentType);
+      // map changed fields from salesforce payload to updates object
       const updates = {};
       changedFields.forEach((field) => {
-        console.log("UPDATE change fields: ", changedFields);
         updates[field] = event.payload[field];
       });
-      console.log("UPDATE updates object: ", updates);
       const { npe01__Paid__c, npe01__Written_Off__c, OutsideFundingSource__c } =
         updates;
 
+      //iterate through and update stripe invoice accordingly
       if (OutsideFundingSource__c) {
-        console.log("OUTSIDE FUNDING SOURCE");
       }
       if (npe01__Written_Off__c) {
-        console.log("MARK STRIPE INVOICE VOID");
         const written_off = npe01__Written_Off__c;
         written_off.boolean === true
           ? voidStripeInvoice(recordId)
           : console.log("invoice not marked void");
       }
       if (npe01__Paid__c) {
-        const payobject = npe01__Paid__c;
-        payobject.boolean === true
+        npe01__Paid__c === true
           ? payStripeInvoice(recordId)
           : console.log("invoice not marked paid");
       }
+
+      // if payment amount has changed in salesforce, finalized stripe invoices cannot be edited, but only created and deleted.
+      if (npe01__Payment_Amount__c) {
+        ("update payment hit");
+        stripeRouter.updatePaymentAmount(
+          recordId,
+          npe01__Payment_Amount__c,
+          Name,
+        );
+      }
       break;
     }
+
     case "DELETE": {
-      //need to store salesforce and stripe ids so that when /if a payment is deleted, it can get voided/deleted in stripe
-      console.log("DELETE case");
+      deleteStripeInvoice(event.payload.ChangeEventHeader.recordIds[0]);
       break;
     }
     default: {

@@ -3,6 +3,11 @@ const { getSalesForceAccessToken } = require("./authRouter.js");
 
 const salesforceRouter = {};
 
+/**
+ * @description retrieves the stripe invoice id corresponding to the salesforce transaction
+ * @param {string} recordId - gets salesforce id corresponding to the record id
+ * @returns
+ */
 salesforceRouter.getStripeId = async (recordId) => {
   const access_token = await getSalesForceAccessToken();
   const data = JSON.stringify({
@@ -43,6 +48,11 @@ salesforceRouter.getStripeId = async (recordId) => {
   return stripeId;
 };
 
+/**
+ * @description retrieves payment type from salesforce api
+ * @param {string} id - payment record id from salesforce data change capture event
+ * @returns
+ */
 salesforceRouter.getPaymentType = async (id) => {
   const access_token = await getSalesForceAccessToken();
   let clientPayment = false;
@@ -86,9 +96,9 @@ salesforceRouter.getPaymentType = async (id) => {
 };
 
 /**
- * helper function - graphQL api call to salesforce for opportunity record ID
- * @param string - payment record id from data change capture event
- * @return string - opportunity record id
+ * @description helper function - graphQL api call to salesforce for opportunity record ID
+ * @param { id } string - payment record id from data change capture event
+ * @return { string } - salesforce opportunity id
  */
 salesforceRouter.getOppRecordId = async (id) => {
   const access_token = await getSalesForceAccessToken();
@@ -136,9 +146,9 @@ salesforceRouter.getOppRecordId = async (id) => {
 };
 
 /**
- * graphQL salesforce API call to retrive opportunity record type for payment record captured in data change event
- * @param {*} id
- * @returns object with opportunty type abbreviation, type - long form, and account name properties
+ * @description graphQL salesforce API call to retrive opportunity record type for payment record captured in data change event
+ * @param {string} id - payment record id from salesforce data change capture event
+ * @returns { object }  opportunty type abbreviation, type - long form, and account name properties
  */
 
 salesforceRouter.retreiveOppType = async (id) => {
@@ -205,15 +215,21 @@ salesforceRouter.retreiveOppType = async (id) => {
   return opportunity;
 };
 
+/**
+ * @description updates the salesforce transaction of the recordId with the new stripeInvoiceId
+ * @param {string} recordId - payment record id from salesforce data change capture event
+ * @param {string} stripeInvoiceId - stripe invoice id corresponding the salesforce transaction
+ * @returns
+ */
 salesforceRouter.updateSalesforceStripeId = async (
   recordId,
-  stripeinvoiceId
+  stripeInvoiceId,
 ) => {
   const access_token = await getSalesForceAccessToken();
   const data = JSON.stringify({
     allowSaveOnDuplicate: false,
     fields: {
-      Stripe_Invoice_ID__c: stripeinvoiceId,
+      Stripe_Invoice_ID__c: stripeInvoiceId,
     },
   });
 
@@ -232,11 +248,13 @@ salesforceRouter.updateSalesforceStripeId = async (
   axios
     .request(config)
     .then((response) => {
-      console.log(JSON.stringify(response.data));
+      // console.log(JSON.stringify(response.data));
     })
     .catch((error) => {
       console.log(error);
     });
+
+  return;
 };
 
 exports.salesforceRouter = salesforceRouter;
