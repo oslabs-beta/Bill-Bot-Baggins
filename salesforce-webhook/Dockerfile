@@ -4,5 +4,5 @@ COPY * /usr/src/app/
 RUN npm install
 COPY . .
 # RUN npm start
-EXPOSE 3000
+EXPOSE 3030
 CMD ["node", "./server.mjs"]
